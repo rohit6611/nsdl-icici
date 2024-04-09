@@ -1,0 +1,2 @@
+0:0:0:0:0:0:0:1 - - [28/Sep/2022:10:57:45 +0530] "GET /api/customer/v1/dashboard/detail HTTP/1.1" 200 134
+0:0:0:0:0:0:0:1 - - [28/Sep/2022:10:58:39 +0530] "GET /api/customer/v1/dashboard/detail HTTP/1.1" 200 133

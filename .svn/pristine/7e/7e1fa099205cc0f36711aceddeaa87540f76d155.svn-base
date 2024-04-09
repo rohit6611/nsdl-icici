@@ -1,0 +1,69 @@
+package com.altruist.controller;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.jose4j.jwk.RsaJsonWebKey;
+import org.jose4j.jwk.RsaJwkGenerator;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.altruist.response.CustomerDetailResponse;
+import com.altruist.response.PaymentResponse;
+import com.altruist.response.StatusDescription;
+import com.altruist.service.CertificateService;
+import com.altruist.service.JwtFactoryService;
+import com.altruist.utils.ConstantManager;
+
+@RestController
+@CrossOrigin(origins = "*")
+@RequestMapping(value = "/api/certificate/")
+public class CertificateController {
+	
+	static RsaJsonWebKey senderJwk = null;
+
+	static {
+		try {
+			senderJwk = RsaJwkGenerator.generateJwk(2048);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Autowired
+	JwtFactoryService jwtFactoryService;
+	
+	@Autowired
+	CertificateService certificateService;
+	
+	@GetMapping("/v1/request/{customerMsisdn}")
+	public ResponseEntity<CustomerDetailResponse> downloadSalesOperatorReport(@RequestHeader("Authorization") String token,
+			@RequestHeader("agentCode") String agentCode, HttpServletRequest req,
+			@PathVariable(name = "customerMsisdn") String customerMsisdn) throws IOException {
+		CustomerDetailResponse response = new CustomerDetailResponse();
+		boolean isValid = jwtFactoryService.validateToken(senderJwk, token, agentCode, "WEB", "", "", req);
+		//boolean isValid = true;
+		if (isValid) {
+			response = certificateService.downloadCertificate(customerMsisdn);
+		} else {
+			StatusDescription status = new StatusDescription();
+			status.setStatusCode(ConstantManager.Token_expired.getStatusCode());
+			status.setStatusDescription(ConstantManager.Token_expired.getDescription());
+			response.setStatusDescription(status);
+		}
+		return new ResponseEntity<CustomerDetailResponse>(response, HttpStatus.OK);
+	}
+}
